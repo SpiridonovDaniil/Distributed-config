@@ -34,3 +34,21 @@ func (s *Service) Get(ctx context.Context, key string) (json.RawMessage, error) 
 
 	return resp, nil
 }
+
+func (s *Service) Update(ctx context.Context, config *domain.Config) error {
+	err := s.repo.Update(ctx, config.Service, config.Data)
+	if err != nil {
+		return fmt.Errorf("[update] failed to update config, error: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) Delete(ctx context.Context, key string) error {
+	err := s.repo.Delete(ctx, key)
+	if err != nil {
+		return fmt.Errorf("[delete] failed to delete config, error: %w", err)
+	}
+
+	return nil
+}
