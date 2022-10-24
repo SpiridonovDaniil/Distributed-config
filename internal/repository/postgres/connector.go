@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	
+
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 type Db struct {
@@ -19,7 +20,7 @@ func New(
 	pass string,
 	db string,
 ) *Db {
-	conn, err := sqlx.Connect("postgres", fmt.Sprintf("user=%s db=%s %s %s %s исправить", user, pass, address, db))
+	conn, err := sqlx.Connect("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable", user, pass, address, db))
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,0 +1,26 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:14.5-alpine
+    restart: always
+    ports:
+      - '54321:5432'
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: config
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: ./docker/app/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+
