@@ -5,6 +5,6 @@ WORKDIR /app
 COPY . .
 
 RUN go mod tidy
-RUN go build -o /opt/app ./cmd/main.go
+RUN go build -o /opt/app ./cmd/app/main.go
 
 CMD ["/opt/app"]

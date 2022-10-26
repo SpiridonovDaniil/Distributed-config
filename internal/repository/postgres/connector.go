@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
-
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"log"
 )
 
 type Db struct {
@@ -29,17 +28,33 @@ func New(
 }
 
 func (d *Db) Create(ctx context.Context, key string, metaData json.RawMessage) error {
-	panic("implement me")
+	d.db.MustBegin()
+	d.db.MustExecContext(ctx, "INSERT INTO config (service, data) VALUES ($1, $2)", key, metaData)
+
+	return nil
 }
 
 func (d *Db) Get(ctx context.Context, key string) (json.RawMessage, error) {
-	panic("implement me")
+	var answer json.RawMessage
+	d.db.MustBegin()
+	err := d.db.GetContext(ctx, answer, "SELECT * FROM config WHERE service=$1", key)
+	if err != nil {
+		return nil, err
+	}
+
+	return answer, nil
 }
 
 func (d *Db) Update(ctx context.Context, key string, metaData json.RawMessage) error {
-	panic("implement me")
+	d.db.MustBegin()
+	d.db.MustExecContext(ctx,"UPDATE config SET data = $1 WHERE service = $2", metaData, key)
+
+	return nil
 }
 
 func (d *Db) Delete(ctx context.Context, key string) error {
-	panic("implement me")
+	d.db.MustBegin()
+	d.db.MustExecContext(ctx,"DELETE FROM config WHERE service = $1", key)
+
+	return nil
 }
