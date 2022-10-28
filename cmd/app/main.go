@@ -7,7 +7,8 @@ import (
 )
 
 func main() {
-	db := postgres.New("db:5432", "user", "test", "config")
+	//db := postgres.New("db:5432", "user", "test", "config")
+	db := postgres.New("127.0.0.1:54321", "user", "test", "config")
 	service := service.New(db)
 	r := router.NewServer(service)
 	err := r.Listen(":8080")

@@ -27,7 +27,7 @@ func createHandler(service service) func(ctx *fiber.Ctx) error {
 
 func getHandler(service service) func(ctx *fiber.Ctx) error {
 	return func(ctx *fiber.Ctx) error {
-		key := ctx.Get("service")
+		key := ctx.Query("service")
 		resp, err := service.Get(ctx.Context(), key)
 		if err != nil {
 			return fmt.Errorf("[getHandler] %w", err)

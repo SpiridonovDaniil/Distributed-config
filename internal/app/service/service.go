@@ -18,7 +18,22 @@ func New(repo repository.Repository) *Service {
 }
 
 func (s *Service) Create(ctx context.Context, config *domain.Config) error {
-	err := s.repo.Create(ctx, config.Service, config.Data)
+	var metadata []map[string]interface{}
+	err := json.Unmarshal(config.Data, &metadata)
+	if err != nil {
+		// todo asdasda
+	}
+
+	resultMeta := make(map[string]interface{})
+	for _, data := range metadata {
+		for key, val := range data {
+			resultMeta[key] = val
+		}
+	}
+
+	rawData, _ := json.Marshal(resultMeta)
+
+	err = s.repo.Create(ctx, config.Service, rawData)
 	if err != nil {
 		return fmt.Errorf("[create] failed to create config, error: %w", err)
 	}

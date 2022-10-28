@@ -28,17 +28,42 @@ func New(
 }
 
 func (d *Db) Create(ctx context.Context, key string, metaData json.RawMessage) error {
-	d.db.MustBegin()
-	d.db.MustExecContext(ctx, "INSERT INTO config (service, data) VALUES ($1, $2)", key, metaData)
+	_, err := d.db.ExecContext(ctx, "INSERT INTO config (service, metadata) VALUES ($1, $2)", key, metaData)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (d *Db) Get(ctx context.Context, key string) (json.RawMessage, error) {
 	var answer json.RawMessage
-	d.db.MustBegin()
-	err := d.db.GetContext(ctx, answer, "SELECT * FROM config WHERE service=$1", key)
+	tx, err := d.db.Beginx()
 	if err != nil {
+		return nil, err
+	}
+
+	err = sqlx.GetContext(ctx, tx, &answer, "SELECT metadata FROM config WHERE service = $1", key)
+	if err != nil {
+		err = fmt.Errorf("get metadata failed, error: %w", err)
+
+		errTx := tx.Rollback()
+		if errTx != nil {
+			err = fmt.Errorf("rollback failed, error: %w", errTx)
+		}
+
+		return nil, err
+	}
+
+	_, err = tx.ExecContext(ctx, "UPDATE config SET is_used = $1 WHERE service = $2", true, key)
+	if err != nil {
+		err = fmt.Errorf("update is_used failed, error: %w", err)
+
+		errTx := tx.Rollback()
+		if errTx != nil {
+			err = fmt.Errorf("rollback failed, error: %w", errTx)
+		}
+
 		return nil, err
 	}
 
@@ -46,15 +71,50 @@ func (d *Db) Get(ctx context.Context, key string) (json.RawMessage, error) {
 }
 
 func (d *Db) Update(ctx context.Context, key string, metaData json.RawMessage) error {
-	d.db.MustBegin()
-	d.db.MustExecContext(ctx,"UPDATE config SET data = $1 WHERE service = $2", metaData, key)
+	_, err := d.db.ExecContext(ctx, "UPDATE config SET metadata = $1 WHERE service = $2", metaData, key)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (d *Db) Delete(ctx context.Context, key string) error {
-	d.db.MustBegin()
-	d.db.MustExecContext(ctx,"DELETE FROM config WHERE service = $1", key)
+	tx, err := d.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	var isUsed bool
+
+	err = sqlx.GetContext(ctx, tx, &isUsed, "SELECT is_used FROM config WHERE service = $1", key)
+	if err != nil {
+		err = fmt.Errorf("get isUsed failed, error: %w", err)
+
+		errTx := tx.Rollback()
+		if errTx != nil {
+			err = fmt.Errorf("rollback failed, error: %w", errTx)
+		}
+
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, "DELETE FROM config WHERE service = $1", key)
+	if err != nil {
+		err = fmt.Errorf("delete config failed, error: %w", err)
+
+		errTx := tx.Rollback()
+		if errTx != nil {
+			err = fmt.Errorf("rollback failed, error: %w", errTx)
+		}
+
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

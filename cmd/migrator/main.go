@@ -8,7 +8,6 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
-
 )
 
 var up = flag.Bool("up", true, "true if up, else down, default true")
@@ -24,7 +23,7 @@ func main() {
 	flag.Parse()
 
 	db, err := sql.Open("postgres",
-		fmt.Sprint("host=db:5432 user=user password=test dbname=config sslmode=disable"),
+		fmt.Sprint("host=db port=5432 user=user password=test dbname=config sslmode=disable"),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -35,7 +34,7 @@ func main() {
 	}
 
 	if *up {
-		if err := goose.Up(db, "migrations"); err != nil {
+		if err := goose.Up(db, "migration"); err != nil {
 			log.Fatal(err)
 		}
 		log.Println("upped")
@@ -43,9 +42,8 @@ func main() {
 		return
 	}
 
-	if err := goose.Down(db, "migrations"); err != nil {
+	if err := goose.Down(db, "migration"); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("downed")
 }
-
