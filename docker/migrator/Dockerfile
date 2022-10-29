@@ -7,7 +7,8 @@ COPY go.sum .
 
 RUN go mod download
 
-COPY . .
+COPY cmd/migrator ./cmd/migrator
+COPY migration ./migration
 
 RUN CGO_ENABLED=0 go build -o /opt/migrator ./cmd/migrator
 

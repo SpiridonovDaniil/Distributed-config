@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/SpiridonovDaniil/Distributed-config/helpers"
 
 	"github.com/SpiridonovDaniil/Distributed-config/internal/domain"
 	"github.com/SpiridonovDaniil/Distributed-config/internal/repository"
@@ -17,21 +18,11 @@ func New(repo repository.Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, config *domain.Config) error {
-	var metadata []map[string]interface{}
-	err := json.Unmarshal(config.Data, &metadata)
+func (s *Service) Create(ctx context.Context, config *domain.Request) error {
+	rawData, err := helpers.Converter(config)
 	if err != nil {
-		// todo asdasda
+		return fmt.Errorf("[create] %w", err)
 	}
-
-	resultMeta := make(map[string]interface{})
-	for _, data := range metadata {
-		for key, val := range data {
-			resultMeta[key] = val
-		}
-	}
-
-	rawData, _ := json.Marshal(resultMeta)
 
 	err = s.repo.Create(ctx, config.Service, rawData)
 	if err != nil {
@@ -50,8 +41,22 @@ func (s *Service) Get(ctx context.Context, key string) (json.RawMessage, error) 
 	return resp, nil
 }
 
-func (s *Service) Update(ctx context.Context, config *domain.Config) error {
-	err := s.repo.Update(ctx, config.Service, config.Data)
+func (s *Service) GetVersions(ctx context.Context, key string) ([]*domain.Config, error) {
+	resp, err := s.repo.GetVersions(ctx, key)
+	if err != nil {
+		return nil, fmt.Errorf("[getVersions] failed to get versions config, error: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (s *Service) Update(ctx context.Context, config *domain.Request) error {
+	rawData, err := helpers.Converter(config)
+	if err != nil {
+		return fmt.Errorf("[update] %w", err)
+	}
+
+	err = s.repo.Update(ctx, config.Service, rawData)
 	if err != nil {
 		return fmt.Errorf("[update] failed to update config, error: %w", err)
 	}
@@ -59,8 +64,8 @@ func (s *Service) Update(ctx context.Context, config *domain.Config) error {
 	return nil
 }
 
-func (s *Service) Delete(ctx context.Context, key string) error {
-	err := s.repo.Delete(ctx, key)
+func (s *Service) Delete(ctx context.Context, key string, version int) error {
+	err := s.repo.Delete(ctx, key, version)
 	if err != nil {
 		return fmt.Errorf("[delete] failed to delete config, error: %w", err)
 	}
