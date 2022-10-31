@@ -25,6 +25,33 @@ func createHandler(service service) func(ctx *fiber.Ctx) error {
 	}
 }
 
+func rollBackHandler(service service) func(ctx *fiber.Ctx) error {
+	return func(ctx *fiber.Ctx) error {
+		key := ctx.Query("service")
+		versionStr := ctx.Query("version")
+
+		var version int
+		if versionStr == "" {
+			ctx.Status(http.StatusBadRequest)
+			return fmt.Errorf("[RollBackHandler] version must be positive integer")
+		}
+
+		version, err := strconv.Atoi(versionStr)
+		if err != nil {
+			ctx.Status(http.StatusBadRequest)
+			return fmt.Errorf("[RollBackHandler] version must be positive integer")
+		}
+
+		err = service.RollBack(ctx.Context(), key, version)
+		if err != nil {
+			return fmt.Errorf("[rollBackHandler] %w", err)
+		}
+		ctx.Status(http.StatusOK)
+
+		return nil
+	}
+}
+
 func getHandler(service service) func(ctx *fiber.Ctx) error {
 	return func(ctx *fiber.Ctx) error {
 		key := ctx.Query("service")
@@ -78,11 +105,11 @@ func putHandler(service service) func(ctx *fiber.Ctx) error {
 
 func deleteHandler(service service) func(ctx *fiber.Ctx) error {
 	return func(ctx *fiber.Ctx) error {
-		key := ctx.Get("service")
+		key := ctx.Query("service")
 		versionStr := ctx.Query("version")
 
 		var version int
-		if versionStr != "" {
+		if versionStr == "" {
 			ctx.Status(http.StatusBadRequest)
 			return fmt.Errorf("[deleteHandler] version must be positive integer")
 		}

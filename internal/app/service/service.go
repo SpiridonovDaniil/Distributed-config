@@ -32,6 +32,15 @@ func (s *Service) Create(ctx context.Context, config *domain.Request) error {
 	return nil
 }
 
+func (s *Service) RollBack(ctx context.Context, key string, version int) error {
+	err := s.repo.RollBack(ctx, key, version)
+	if err != nil {
+		return fmt.Errorf("[rollback] failed to rollback config, error: %w", err)
+	}
+
+	return nil
+}
+
 func (s *Service) Get(ctx context.Context, key string) (json.RawMessage, error) {
 	resp, err := s.repo.Get(ctx, key)
 	if err != nil {

@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/SpiridonovDaniil/Distributed-config/internal/domain"
 	"github.com/jmoiron/sqlx"
@@ -68,6 +70,54 @@ func (d *Db) Create(ctx context.Context, key string, metaData json.RawMessage) e
 	return nil
 }
 
+func (d *Db) RollBack(ctx context.Context, key string, version int) error {
+	tx, err := d.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	query := `
+	SELECT s.service FROM config c
+	JOIN service s ON c.service_id = s.id
+	WHERE s.service = $1 AND c.version = $2 
+	`
+
+	var name string
+	err = tx.GetContext(ctx, &name, query, key, version)
+	if err != nil {
+		err = fmt.Errorf("failed to get version config, error: %w", err)
+		if !errors.Is(err, sql.ErrNoRows) {
+			err = fmt.Errorf("the specified version does not exist")
+		}
+
+		errTx := tx.Rollback()
+		if errTx != nil {
+			err = fmt.Errorf("rollback failed, error: %w", errTx)
+		}
+
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, "UPDATE service SET current_version = $1 WHERE service = $2", version, key)
+	if err != nil {
+		err = fmt.Errorf("failed to change version config, error: %w", err)
+
+		errTx := tx.Rollback()
+		if errTx != nil {
+			err = fmt.Errorf("rollback failed, error: %w", errTx)
+		}
+
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (d *Db) Get(ctx context.Context, key string) (json.RawMessage, error) {
 	var answer json.RawMessage
 
@@ -103,14 +153,70 @@ func (d *Db) GetVersions(ctx context.Context, key string) ([]*domain.Config, err
 }
 
 func (d *Db) Update(ctx context.Context, key string, metaData json.RawMessage) error {
-	_, err := d.db.ExecContext(ctx, "INSERT INTO config (service, metadata) VALUES ($1, $2)", key, metaData)
+	tx, err := d.db.Beginx()
 	if err != nil {
 		return err
 	}
-	/* Сделать методы апдейт и делит. Апдейт должен создавать новую версию в таблице конфиг и менять
-	карэнт айди в таблице сервис. Делит должен удалять определенную версию конфига по переданному сервису и версии.
-	Делит не может удалить карэнт версию.
-	*/
+
+	var id int
+	err = tx.GetContext(ctx, &id, "SELECT id FROM service WHERE service = $1", key)
+	if err != nil {
+		err = fmt.Errorf("failed select id config, err: %w", err)
+
+		errTx := tx.Rollback()
+		if errTx != nil {
+			err = fmt.Errorf("rollback failed, error: %w", errTx)
+		}
+
+		return err
+	}
+
+	query := `
+	UPDATE service SET current_version = current_version + 1 
+	WHERE service = $1 
+	`
+
+	_, err = tx.ExecContext(ctx, query, key)
+	if err != nil {
+		err = fmt.Errorf("failed change current version config, err: %w", err)
+
+		errTx := tx.Rollback()
+		if errTx != nil {
+			err = fmt.Errorf("rollback failed, error: %w", errTx)
+		}
+
+		return err
+	}
+
+	var version int
+	err = tx.GetContext(ctx, &version, "SELECT current_version FROM service WHERE service = $1", key)
+	if err != nil {
+		err = fmt.Errorf("failed select new version config, err: %w", err)
+
+		errTx := tx.Rollback()
+		if errTx != nil {
+			err = fmt.Errorf("rollback failed, error: %w", errTx)
+		}
+
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, "INSERT INTO config (service_id, metadata, version) VALUES ($1, $2, $3)", id, metaData, version)
+	if err != nil {
+		err = fmt.Errorf("failed create new version config, err: %w", err)
+
+		errTx := tx.Rollback()
+		if errTx != nil {
+			err = fmt.Errorf("rollback failed, error: %w", errTx)
+		}
+
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -121,11 +227,11 @@ func (d *Db) Delete(ctx context.Context, key string, version int) error {
 		return err
 	}
 
-	var isUsed bool
+	var currentVersion int
 
-	err = sqlx.GetContext(ctx, tx, &isUsed, "SELECT is_used FROM config WHERE service = $1", key)
+	err = tx.GetContext(ctx, &currentVersion, "SELECT current_version FROM service WHERE service = $1", key)
 	if err != nil {
-		err = fmt.Errorf("get isUsed failed, error: %w", err)
+		err = fmt.Errorf("get current version failed, error: %w", err)
 
 		errTx := tx.Rollback()
 		if errTx != nil {
@@ -134,17 +240,20 @@ func (d *Db) Delete(ctx context.Context, key string, version int) error {
 
 		return err
 	}
+	if currentVersion != version {
+		_, err = tx.ExecContext(ctx, "DELETE FROM config WHERE version = $1", version)
+		if err != nil {
+			err = fmt.Errorf("delete config failed, error: %w", err)
 
-	_, err = tx.ExecContext(ctx, "DELETE FROM config WHERE service = $1", key)
-	if err != nil {
-		err = fmt.Errorf("delete config failed, error: %w", err)
+			errTx := tx.Rollback()
+			if errTx != nil {
+				err = fmt.Errorf("rollback failed, error: %w", errTx)
+			}
 
-		errTx := tx.Rollback()
-		if errTx != nil {
-			err = fmt.Errorf("rollback failed, error: %w", errTx)
+			return err
 		}
-
-		return err
+	} else {
+		return fmt.Errorf("the distributed version cannot be removed")
 	}
 
 	err = tx.Commit()

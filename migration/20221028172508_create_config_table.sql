@@ -10,7 +10,8 @@ CREATE TABLE config
 (
     service_id integer REFERENCES service(id) NOT NULL,
     metadata json NOT NULL,
-    version integer NOT NULL UNIQUE
+    version integer NOT NULL,
+    UNIQUE (service_id, version)
 );
 -- +goose StatementEnd
 

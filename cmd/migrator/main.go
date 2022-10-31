@@ -13,13 +13,6 @@ import (
 var up = flag.Bool("up", true, "true if up, else down, default true")
 
 func main() {
-	//cfg, err := config.LoadConfig("")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//dbCfg := cfg.DataBase
-
 	flag.Parse()
 
 	db, err := sql.Open("postgres",
