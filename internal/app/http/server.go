@@ -7,6 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+//go:generate mockgen -source=server.go -destination=mocks/mock.go
+
 type service interface {
 	Create(ctx context.Context, req *domain.Request) error
 	RollBack(ctx context.Context, key string, version int) error
