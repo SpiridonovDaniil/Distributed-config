@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/SpiridonovDaniil/Distributed-config/helpers"
+	"github.com/SpiridonovDaniil/Distributed-config/internal/helpers"
 
 	"github.com/SpiridonovDaniil/Distributed-config/internal/domain"
 	"github.com/SpiridonovDaniil/Distributed-config/internal/repository"

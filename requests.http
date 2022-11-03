@@ -1,22 +1,85 @@
+###
+# Запрос создаст новую конфигурацию в базе данных.
+# Важно: данный запрос не создает новые версии уже существующей конфигурации.
+#        поле "service" должно быть уникальным для каждой конфигурации.
+#        для создания новой версии конфигурации используйте метод PUT.
+#
+# curl -X POST --location "http://localhost:8080/config"
+# -H "Content-Type: application/json"
+# -d '{"service":"test1","data":[{"key1":"valy"},{"key2":"pety"}]}'
+
+
+POST http://localhost:8080/config
+Content-Type: application/json
+
+{
+  "service": "test1",
+  "data": [
+    {"key1": "valy"},
+    {"key2": "pety"}
+  ]
+}
+
+
+###
+# Следующий запрос создаст в базе данных новую версию существующей конфигурации.
+#
 # curl --location --request PUT 'http://localhost:8080/config'
 #--header 'Content-Type: application/json'
 #--data-raw '{
-# "service": "lowef2ef",
+# "service": "test1",
 #   "data": [
 #      {"key1": "valy"},
 #      {"key2": "pety"}
 #    ]
 #}'
+
 PUT http://localhost:8080/config
 Content-Type: application/json
 
 {
- "service": "lowef2ef",
+ "service": "test1",
    "data": [
-      {"key1": "valy"},
-      {"key2": "pety"}
+      {"key1": "valya"},
+      {"key2": "petya"}
     ]
 }
 
+
 ###
+# Следующий запрос откатит указанную конфигурацию до указанной версии, если она существует в базе данных.
+#
+# curl -X POST --location "http://localhost:8080/config/rollback?service=test1&version=1"
+
+POST http://localhost:8080/config/rollback?service=test1&version=1
+
+
+###
+# Следующий запрос вернет действующую конфигурацию указанного сервиса.
+#
+# curl -X GET --location "http://localhost:8080/config?service=test1"
+# -H "Accept: application/json"
+
+GET http://localhost:8080/config?service=test1
+Accept: application/json
+
+
+###
+# Следующий запрос вернет все версии указанного сервиса.
+#
+# curl -X GET --location "http://localhost:8080/config/versions?service=test1"
+# -H "Accept: application/json"
+
+GET http://localhost:8080/config/versions?service=test1
+Accept: application/json
+
+
+###
+# Следующий запрос удалит указанную версию конфигурации, указанного сервиса.
+# Важно: запрос не сможет удалить действующую версию конфигурации сервиса.
+#        Нельзя удалить последнюю версию конфигурации сервиса, так как должна быть действующая версия.
+#
+# curl -X DELETE --location "http://localhost:8080/config?service=test1&version=2"
+
+DELETE http://localhost:8080/config?service=test1&version=2
 

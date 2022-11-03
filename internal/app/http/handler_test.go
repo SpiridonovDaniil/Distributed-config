@@ -295,3 +295,57 @@ func TestHandler_putHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestHandler_deleteHandler(t *testing.T) {
+	type mockBehavior func(s *mock_http.Mockservice, expectedError error)
+	testTable := []struct {
+		name                   string
+		request                string
+		mockBehavior           mockBehavior
+		expectedTestStatusCode int
+		expectedError          error
+		expectedResponse       string
+	}{
+		{
+			name:    "get HTTP status 200",
+			request: "/config?service=test&version=1",
+			mockBehavior: func(s *mock_http.Mockservice, expectedError error) {
+				s.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(expectedError)
+			},
+			expectedTestStatusCode: 200,
+			expectedResponse:       "",
+		},
+		{
+			name:    "get bad request 400",
+			request: "/config?service=test&version=t",
+			mockBehavior: func(s *mock_http.Mockservice, expectedError error) {
+			},
+			expectedTestStatusCode: 400,
+			expectedResponse:       "[deleteHandler] version must be positive integer",
+		},
+	}
+
+	for _, testCase := range testTable {
+		t.Run(testCase.name, func(t *testing.T) {
+			c := gomock.NewController(t)
+			defer c.Finish()
+
+			delete := mock_http.NewMockservice(c)
+			if testCase.name == "get HTTP status 200" {
+				testCase.mockBehavior(delete, testCase.expectedError)
+			}
+
+			f := NewServer(delete)
+			req, err := http.NewRequest("DELETE", testCase.request, strings.NewReader(""))
+			req.Header.Add("content-Type", "application/json")
+			assert.NoError(t, err)
+
+			resp, err := f.Test(req)
+			assert.NoError(t, err)
+
+			body, err := io.ReadAll(resp.Body)
+			assert.Equal(t, testCase.expectedTestStatusCode, resp.StatusCode)
+			assert.Equal(t, testCase.expectedResponse, string(body))
+		})
+	}
+}

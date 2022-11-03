@@ -129,7 +129,7 @@ func deleteHandler(service service) func(ctx *fiber.Ctx) error {
 			return fmt.Errorf("[deleteHandler] version must be positive integer")
 		}
 
-		err = service.Delete(ctx.Context(), key, version) // todo version
+		err = service.Delete(ctx.Context(), key, version)
 		if err != nil {
 			ctx.Status(http.StatusInternalServerError)
 			return fmt.Errorf("[deleteHandler] %w", err)
