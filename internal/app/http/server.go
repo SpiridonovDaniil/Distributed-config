@@ -21,6 +21,8 @@ type service interface {
 func NewServer(service service) *fiber.App {
 	f := fiber.New()
 
+	f.Use(HandleErrors)
+
 	f.Post("/config", createHandler(service))
 	f.Post("config/rollback", rollBackHandler(service))
 	f.Get("/config", getHandler(service))

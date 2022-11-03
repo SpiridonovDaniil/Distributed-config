@@ -1,0 +1,22 @@
+# curl --location --request PUT 'http://localhost:8080/config'
+#--header 'Content-Type: application/json'
+#--data-raw '{
+# "service": "lowef2ef",
+#   "data": [
+#      {"key1": "valy"},
+#      {"key2": "pety"}
+#    ]
+#}'
+PUT http://localhost:8080/config
+Content-Type: application/json
+
+{
+ "service": "lowef2ef",
+   "data": [
+      {"key1": "valy"},
+      {"key2": "pety"}
+    ]
+}
+
+###
+

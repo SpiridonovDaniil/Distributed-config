@@ -1,0 +1,6 @@
+.env.local
+docker/
+docker-compose
+.gitignore
+.idea
+.git

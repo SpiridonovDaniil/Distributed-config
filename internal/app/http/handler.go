@@ -13,10 +13,12 @@ func createHandler(service service) func(ctx *fiber.Ctx) error {
 		var req domain.Request
 		err := ctx.BodyParser(&req)
 		if err != nil {
+			ctx.Status(http.StatusBadRequest)
 			return fmt.Errorf("[createHandler] failed to parse request, error: %w", err)
 		}
 		err = service.Create(ctx.Context(), &req)
 		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
 			return fmt.Errorf("[createHandler] %w", err)
 		}
 		ctx.Status(http.StatusCreated)
@@ -44,6 +46,7 @@ func rollBackHandler(service service) func(ctx *fiber.Ctx) error {
 
 		err = service.RollBack(ctx.Context(), key, version)
 		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
 			return fmt.Errorf("[rollBackHandler] %w", err)
 		}
 		ctx.Status(http.StatusOK)
@@ -58,10 +61,12 @@ func getHandler(service service) func(ctx *fiber.Ctx) error {
 
 		resp, err := service.Get(ctx.Context(), key)
 		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
 			return fmt.Errorf("[getHandler] %w", err)
 		}
 		err = ctx.JSON(resp)
 		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
 			return fmt.Errorf("[getHandler] failed to return JSON answer, error: %w", err)
 		}
 
@@ -75,10 +80,12 @@ func getVersionsHandler(service service) func(ctx *fiber.Ctx) error {
 
 		resp, err := service.GetVersions(ctx.Context(), key)
 		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
 			return fmt.Errorf("[getHandler] %w", err)
 		}
 		err = ctx.JSON(resp)
 		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
 			return fmt.Errorf("[getHandler] failed to return JSON answer, error: %w", err)
 		}
 
@@ -91,10 +98,12 @@ func putHandler(service service) func(ctx *fiber.Ctx) error {
 		var req domain.Request
 		err := ctx.BodyParser(&req)
 		if err != nil {
+			ctx.Status(http.StatusBadRequest)
 			return fmt.Errorf("[putHandler] failed to parse request, error: %w", err)
 		}
 		err = service.Update(ctx.Context(), &req)
 		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
 			return fmt.Errorf("[putHandler] %w", err)
 		}
 		ctx.Status(http.StatusOK)
@@ -122,6 +131,7 @@ func deleteHandler(service service) func(ctx *fiber.Ctx) error {
 
 		err = service.Delete(ctx.Context(), key, version) // todo version
 		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
 			return fmt.Errorf("[deleteHandler] %w", err)
 		}
 		ctx.Status(http.StatusOK)

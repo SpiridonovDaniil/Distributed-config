@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/SpiridonovDaniil/Distributed-config/internal/config"
 	"github.com/SpiridonovDaniil/Distributed-config/internal/domain"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -16,13 +17,15 @@ type Db struct {
 	db *sqlx.DB
 }
 
-func New(
-	address string,
-	user string,
-	pass string,
-	db string,
-) *Db {
-	conn, err := sqlx.Connect("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable", user, pass, address, db))
+func New(cfg config.Postgres) *Db {
+	conn, err := sqlx.Connect("postgres",
+		fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+			cfg.User,
+			cfg.Pass,
+			cfg.Address,
+			cfg.Port,
+			cfg.Db,
+		))
 	if err != nil {
 		log.Fatal(err)
 	}
